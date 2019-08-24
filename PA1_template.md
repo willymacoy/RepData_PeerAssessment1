@@ -8,11 +8,25 @@ output:
 
 ## Loading and preprocessing the data
 The number of steps per 5 minute interval over two months is provided in the file activity.csv.
-```{r}
+
+```r
 library(dplyr)
 library(lubridate)
 stepsDf <- read.csv('activity.csv', stringsAsFactors = FALSE)
 head(stepsDf)
+```
+
+```
+##   steps       date interval
+## 1    NA 2012-10-01        0
+## 2    NA 2012-10-01        5
+## 3    NA 2012-10-01       10
+## 4    NA 2012-10-01       15
+## 5    NA 2012-10-01       20
+## 6    NA 2012-10-01       25
+```
+
+```r
 steps <- tbl_df(stepsDf)
 stepsByDay <- 	steps %>%  
 				group_by(date) %>% 
@@ -23,18 +37,31 @@ hist(	stepsByDay$stepTotal,
 		xlab = "Total Steps")
 ```
 
+![plot of chunk unnamed-chunk-1](figure/unnamed-chunk-1-1.png)
+
 ## What is mean total number of steps taken per day?
-```{r}
+
+```r
 mean(stepsByDay$stepTotal, na.rm = TRUE)
 ```
 
+```
+## [1] 9354.23
+```
+
 ## What is median total number of steps taken per day?
-```{r}
+
+```r
 median(stepsByDay$stepTotal, na.rm = TRUE)
 ```
 
+```
+## [1] 10395
+```
+
 ## What is the average daily activity pattern?
-```{r}
+
+```r
 stepsByInterval <- 	steps %>% 
 					group_by(interval) %>%
 					summarise(stepsMean = mean(steps, na.rm=TRUE)) %>%
@@ -50,25 +77,37 @@ with(stepsByInterval, plot(	x = tod,
 							xlab = 'Time of Day'
 							))
 axis(side = 1, at = seq(0, 86400, 3600), labels = paste0(seq(0, 24, 1), ':00'))
-
 ```
 
+![plot of chunk unnamed-chunk-4](figure/unnamed-chunk-4-1.png)
+
 ## What is the interval that, on average, contains the maximum number of steps
-```{r}
+
+```r
 stepsByInterval[[which(stepsByInterval$stepsMean == max(stepsByInterval$stepsMean)), 'interval']]
+```
+
+```
+## [1] 835
 ```
 
 
 
 ## Imputing missing values
 ### How many missing values are there?
-```{r}
+
+```r
 sum(is.na(stepsDf[,1]))
+```
+
+```
+## [1] 2304
 ```
 ### Imputing strategy
 The missing values in the original dataset are replaced with the mean of
 the same interval across those observations that were not missing
-```{r}
+
+```r
 fullSteps <- 	merge(	steps, stepsByInterval,
 						by.x='interval', by.y='interval') %>% 
 				mutate(newsteps = ifelse(is.na(steps), stepsMean, steps))
@@ -76,11 +115,21 @@ newSteps <- fullSteps %>%
 			select(steps = newsteps, date, interval) %>% 
 			arrange(date, interval)
 head(newSteps)
-			
+```
+
+```
+##       steps       date interval
+## 1 1.7169811 2012-10-01        0
+## 2 0.3396226 2012-10-01        5
+## 3 0.1320755 2012-10-01       10
+## 4 0.1509434 2012-10-01       15
+## 5 0.0754717 2012-10-01       20
+## 6 2.0943396 2012-10-01       25
 ```
 
 ### What does it look like now?
-```{r}
+
+```r
 stepsByDay <- 	newSteps %>%  
 				group_by(date) %>% 
 				summarise(stepTotal = sum(steps, na.rm = TRUE))
@@ -90,28 +139,46 @@ hist(	stepsByDay$stepTotal,
 		xlab = "Total Steps")
 ```
 
+![plot of chunk unnamed-chunk-8](figure/unnamed-chunk-8-1.png)
+
 ### What is mean total number of steps taken per day?
-```{r}
+
+```r
 mean(stepsByDay$stepTotal, na.rm = TRUE)
 ```
 
+```
+## [1] 10766.19
+```
+
 ### What is median total number of steps taken per day?
-```{r}
+
+```r
 median(stepsByDay$stepTotal, na.rm = TRUE)
+```
+
+```
+## [1] 10766.19
 ```
 While it appears unusual that the mean and median are identical, there are a number 
 of days that the steps value for every interval was missing. This imputing 
 strategy resulted in those days having the mean sum of steps.
 How many days does this affect?
-```{r}
+
+```r
 sum(stepsByDay[, 'stepTotal'] == mean(stepsByDay$stepTotal, na.rm = TRUE))
+```
+
+```
+## [1] 8
 ```
 
 
 
 ### Are there differences in activity patterns between weekdays and weekends?
 #### Create a factor with 2 values - week and weekend
-```{r}
+
+```r
 stepdays <- newSteps %>% 
 				mutate(dow = weekdays(as.Date(date))) %>%
 				mutate(dow = factor(dow, 
@@ -151,6 +218,6 @@ mtext("Time of Day", side = 1, outer = TRUE, line = 2.2)
 mtext("Steps Mean", side = 2, outer = TRUE, line = 2.2)		
 mtext('Average Daily Activity', side = 3, outer = TRUE, line = 2.2)	
 ```
-```{r echo = FALSE}
-par(mfrow = c(1, 1))
-``` 
+
+![plot of chunk unnamed-chunk-12](figure/unnamed-chunk-12-1.png)
+
