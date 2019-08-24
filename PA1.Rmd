@@ -1,0 +1,103 @@
+---
+title: "Reproducible Research: Peer Assessment 1"
+output: 
+  html_document:
+    keep_md: true
+---
+
+
+## Loading and preprocessing the data
+```{r}
+library(dplyr)
+library(lubridate)
+stepsDf <- read.csv('activity.csv', stringsAsFactors = FALSE)
+steps <- tbl_df(stepsDf)
+stepsByDay <- steps %>%  group_by(date) %>% summarise(stepTotal = sum(steps, na.rm = TRUE))
+hist(stepsByDay$stepTotal, breaks = 10)
+```
+```{r}
+head(steps)
+str(steps)
+```
+
+## What is mean total number of steps taken per day?
+```{r}
+mean(stepsByDay$stepTotal, na.rm = TRUE)
+```
+
+## What is median total number of steps taken per day?
+```{r}
+median(stepsByDay$stepTotal, na.rm = TRUE)
+```
+
+## What is the average daily activity pattern?
+```{r}
+stepsByInterval <- steps %>% 
+					group_by(interval) %>%
+					summarise(stepsMean = mean(steps, na.rm=TRUE)) %>%
+					mutate(t = sprintf('%04d', interval), interval_t = paste(substr(t, 1, 2), substr(t, 3, 4), '00', sep = ':' ),tod = hms(interval_t))
+with(stepsByInterval, plot(x=tod, y=stepsMean, xaxt='n', type='l'))
+axis(side=1,at=seq(0,86400,3600),labels=paste0(seq(0,24,1),':00'))
+str(stepsByInterval)
+```
+
+
+
+
+## Imputing missing values
+### How many missing values?
+```{r}
+sum(is.na(stepsDf[,1]))
+```
+
+### replace missing values with the mean for that interval over the remaining days
+```{r}
+fullSteps <- merge(steps,stepsByInterval,by.x='interval',by.y='interval')%>% mutate(newsteps = ifelse(is.na(steps),stepsMean,steps))
+
+newSteps<- fullSteps%>%select(steps=newsteps,date,interval)%>%arrange(date,interval)
+head(newSteps)
+str(newSteps)
+```
+
+###What does it look like now?
+```{r}
+stepsByDay <- newSteps %>%  group_by(date) %>% summarise(stepTotal = sum(steps, na.rm = TRUE))
+hist(stepsByDay$stepTotal, breaks = 10)
+
+```
+## What is mean total number of steps taken per day?
+```{r}
+mean(stepsByDay$stepTotal, na.rm = TRUE)
+median(stepsByDay$stepTotal, na.rm = TRUE)
+```
+
+## What is median total number of steps taken per day?
+```{r}
+median(stepsByDay$stepTotal, na.rm = TRUE)
+```
+
+
+## Are there differences in activity patterns between weekdays and weekends?
+### Create a factor with 2 values week and weekend
+```{r}
+stepdays <- newSteps %>% 
+				mutate(t = sprintf('%04d', interval), interval_t = paste(substr(t, 1, 2), substr(t, 3, 4), '00', sep = ':' ),tod = hms(interval_t)) %>%
+				mutate(dow=weekdays(as.Date(date)))%>%
+				mutate(dow =factor(dow, levels = c("Monday","Tuesday","Wednesday","Thursday","Friday", "Saturday","Sunday"), 
+								labels = c("week","week","week","week","week","weekend","weekend")))
+
+str(stepdays)
+
+stepdaysg = stepdays %>% group_by(interval,dow) %>%
+					summarise(stepsMean = mean(steps, na.rm=TRUE)) 
+#					%>%	mutate(t = sprintf('%04d', interval), interval_t = paste(substr(t, 1, 2), substr(t, 3, 4), '00', sep = ':' ),tod = hms(interval_t))
+					
+str(stepdaysg)	
+x = as.data.frame(stepdaysg)
+str(x)
+x%>%	mutate(t = sprintf('%04d', interval), interval_t = paste(substr(t, 1, 2), substr(t, 3, 4), '00', sep = ':' ),tod = hms(interval_t))
+str(x)
+#library(lattice)
+#xyplot(stepsMean~interval|dow,stepdaysg)
+		
+``` 
